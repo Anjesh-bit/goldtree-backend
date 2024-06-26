@@ -1,0 +1,5 @@
+{
+  "port": 5000,
+  "multerPath": "public/",
+  "clientImageUri": "http://localhost:5000/public/"
+}
