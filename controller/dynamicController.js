@@ -21,6 +21,7 @@ const profileUpdate = async (req, res) => {
     } else {
       return res.status(400).json({ error: "Invalid query type" });
     }
+    
     const matchedData = await collection.findOne({ userId: req.query.id });
     const finalData = { ...matchedData, ...uploadData };
     const updateResult = await collection.updateOne(query, {
@@ -31,7 +32,7 @@ const profileUpdate = async (req, res) => {
       const fetchedData = await collection.findOne({ userId: req.query.id });
       res.status(201).json({
         success: true,
-        message: "Profile Picture Upated Succesfully",
+        message: "Profile Picture Updated Successfully",
         data: fetchedData,
       });
     } else {

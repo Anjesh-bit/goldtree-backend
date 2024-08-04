@@ -15,6 +15,7 @@ const {
 const { profileUpdate } = require("../controller/dynamicController");
 const { determineFieldName } = require("../middleware/fields");
 const { dynamicUpload } = require("../middleware/dynamicUpload");
+const { globalSearch } = require("../controller/searchController");
 
 jobseekerRoute.route("/jobseeker-profile-info").post(profilInfo);
 
@@ -39,4 +40,6 @@ jobseekerRoute.route("/save-jobs/:jobSeekUserId").get(getsaveJobs);
 
 jobseekerRoute.route("/jobSeeker-applied-jobs").get(appliedJobsByUserId);
 jobseekerRoute.route("/profile-update").post(uploadProfile);
+jobseekerRoute.route("/search").get(globalSearch);
+
 module.exports = jobseekerRoute;

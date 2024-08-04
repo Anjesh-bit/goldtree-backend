@@ -1,3 +1,4 @@
+const { mongoClient } = require("../db/connection");
 const database = mongoClient.db("GoldTree");
 const collectionPosts = database.collection("EmployeePostJobs");
 
