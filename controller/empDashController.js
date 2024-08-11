@@ -2,6 +2,7 @@ const { mongoClient } = require("../db/connection");
 const { ObjectId } = require("mongodb");
 const getProfileInfoByUserId = require("../services/profileService");
 const database = mongoClient.db("GoldTree");
+const upload = database.collection("Upload");
 const collectionPosts = database.collection("EmployeePostJobs");
 const collectionPfInfo = database.collection("EmployeeProfileInfo");
 
@@ -212,6 +213,66 @@ const findByIdAndGet = async (req, res) => {
   }
 };
 
+const shortListedCandidates = async (req, res) => {
+  try {
+    const foundItems = await upload
+      .aggregate([
+        {
+          $match: {
+            shorlisted: true,
+          },
+        },
+        {
+          $lookup: {
+            from: "EmployeePostJobs",
+            let: { postId: "$postId" },
+            pipeline: [
+              {
+                $match: {
+                  $expr: {
+                    $and: [
+                      { $eq: [{ $strLenCP: "$$postId" }, 24] },
+                      {
+                        $eq: [
+                          "$_id",
+                          {
+                            $convert: {
+                              input: "$$postId",
+                              to: "objectId",
+                              onError: "$$REMOVE",
+                              onNull: "$$REMOVE",
+                            },
+                          },
+                        ],
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+            as: "postInfo",
+          },
+        },
+        {
+          $unwind: "$postInfo",
+        },
+      ])
+      .toArray();
+
+    if (foundItems.length > 0) {
+      return res.status(200).json(foundItems);
+    } else {
+      return res
+        .status(404)
+        .json({ message: "No candidates found for this user." });
+    }
+  } catch (e) {
+    res.status(500).json({
+      error: `Error while fetching data from the database: ${e.message}`,
+    });
+  }
+};
+
 module.exports = {
   profileInfo,
   findAllProfileInfo,
@@ -223,4 +284,5 @@ module.exports = {
   getAllPosts,
   findOneAndUpdatePostJobs,
   findByIdAndGet,
+  shortListedCandidates,
 };

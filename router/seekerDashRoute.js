@@ -1,7 +1,7 @@
 const express = require("express");
-const jobseekerRoute = express.Router();
+const jobSeekerRoute = express.Router();
 const {
-  profilInfo,
+  profileInfo,
   uploadFile,
   getAllCandidateEasyApplied,
   findOneAndUpdate,
@@ -17,29 +17,29 @@ const { determineFieldName } = require("../middleware/fields");
 const { dynamicUpload } = require("../middleware/dynamicUpload");
 const { globalSearch } = require("../controller/searchController");
 
-jobseekerRoute.route("/jobseeker-profile-info").post(profilInfo);
+jobSeekerRoute.route("/jobseeker-profile-info").post(profileInfo);
 
-jobseekerRoute
+jobSeekerRoute
   .route("/jobseeker-profile-info/:id")
   .get(profileInfoById)
   .put(findOneAndUpdate);
 
-jobseekerRoute
+jobSeekerRoute
   .route("/upload")
   .post(determineFieldName, dynamicUpload, uploadFile)
   .get(getAllCandidateEasyApplied);
 
-jobseekerRoute.route("/shortlist").put(uploadFile).get(shortListedJobs);
+jobSeekerRoute.route("/shortlist").put(uploadFile).get(shortListedJobs);
 
-jobseekerRoute
+jobSeekerRoute
   .route("/profile-update")
   .put(determineFieldName, dynamicUpload, profileUpdate);
 
-jobseekerRoute.route("/save-jobs").put(saveJobs);
-jobseekerRoute.route("/save-jobs/:jobSeekUserId").get(getsaveJobs);
+jobSeekerRoute.route("/save-jobs").put(saveJobs);
+jobSeekerRoute.route("/save-jobs/:jobSeekUserId").get(getsaveJobs);
 
-jobseekerRoute.route("/jobSeeker-applied-jobs").get(appliedJobsByUserId);
-jobseekerRoute.route("/profile-update").post(uploadProfile);
-jobseekerRoute.route("/search").get(globalSearch);
+jobSeekerRoute.route("/jobSeeker-applied-jobs").get(appliedJobsByUserId);
+jobSeekerRoute.route("/profile-update").post(uploadProfile);
+jobSeekerRoute.route("/search").get(globalSearch);
 
-module.exports = jobseekerRoute;
+module.exports = jobSeekerRoute;

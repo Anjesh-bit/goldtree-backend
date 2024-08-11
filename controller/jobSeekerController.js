@@ -10,7 +10,7 @@ const getProfileInfoByUserId = require("../services/profileService");
 const { ObjectId } = require("mongodb");
 dotenv.config();
 
-const profilInfo = async (req, res) => {
+const profileInfo = async (req, res) => {
   const { userId } = req.body;
   try {
     const profileInfo = await collectionPfInfo.insertOne({
@@ -406,7 +406,7 @@ const getsaveJobs = async (req, res) => {
 };
 
 module.exports = {
-  profilInfo,
+  profileInfo,
   uploadFile,
   getAllCandidateEasyApplied,
   profileInfoById,

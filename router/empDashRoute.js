@@ -11,6 +11,7 @@ const {
   findOneAndUpdatePostJobs,
   getAllPosts,
   findByIdAndGet,
+  shortListedCandidates,
 } = require("../controller/empDashController");
 
 empRoute.route("/emp-profile-info").post(profileInfo).get(findAllProfileInfo);
@@ -28,5 +29,7 @@ empRoute
   .route("/emp-posts-by-id/:id")
   .get(getPostsByUserId)
   .put(findOneAndUpdatePostJobs);
+
+empRoute.route("/short-listed-candidates").get(shortListedCandidates);
 
 module.exports = empRoute;
