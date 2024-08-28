@@ -198,4 +198,32 @@ const logout = (req, res) => {
   res.json({ message: "Logout successful" });
 };
 
-module.exports = { login, register, refreshToken, logout };
+const changePassword = async (req, res) => {
+  const { old_password, new_password } = req.body;
+  const { type, userId } = req.query;
+  try {
+    const userCollection = type === "jobSeeker" ? collectionSe : collectionEmp;
+    const userObjectId = new ObjectId(userId);
+    const userData = await userCollection.findOne({
+      _id: userObjectId,
+    });
+    if (!userData) return res.status(404).json({ message: "User not found" });
+
+    const isMatch = await bcrypt.compare(old_password, userData.password);
+
+    if (!isMatch)
+      return res.status(400).json({ message: "Password didn't match" });
+
+    const hashedPassword = await bcrypt.hash(new_password, 10);
+
+    await userCollection.updateOne(
+      { _id: userObjectId },
+      { $set: { password: hashedPassword } }
+    );
+    res.status(200).json({ message: "Password updated successfully" });
+  } catch (e) {
+    res.status(403).json({ message: "Invalid or expired refresh token" });
+  }
+};
+
+module.exports = { login, register, refreshToken, logout, changePassword };
