@@ -226,4 +226,36 @@ const changePassword = async (req, res) => {
   }
 };
 
-module.exports = { login, register, refreshToken, logout, changePassword };
+const deactivateAccount = async (req, res) => {
+  try {
+    const { userId, type } = req.query;
+    const { deactivate_reason } = req.body;
+    const userObjectId = new ObjectId(userId);
+    const collection = type === "employee" ? collectionEmp : collectionSe;
+    const user = await collection.findOne({ _id: userObjectId });
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    await collection.updateOne(
+      { _id: userObjectId },
+      {
+        $set: {
+          deactivatedAt: Date.now(),
+          deactivateReason: deactivate_reason,
+        },
+      }
+    );
+    res.status(201).json({ message: "Account deactivation was successful." });
+  } catch (e) {
+    res.status(403).json({ message: `Deactivation  unsuccessful. ${e}` });
+  }
+};
+
+module.exports = {
+  login,
+  register,
+  refreshToken,
+  logout,
+  changePassword,
+  deactivateAccount,
+};
