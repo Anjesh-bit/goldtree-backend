@@ -41,6 +41,7 @@ const profileInfo = async (req, res) => {
 const findOneAndUpdate = async (req, res) => {
   try {
     const { id } = req.params;
+    const fetchedData = await collectionPfInfo.findOne({ userId: id });
     const updateData = {
       profile: {
         ...req.body.profile,
@@ -54,8 +55,11 @@ const findOneAndUpdate = async (req, res) => {
       trainingCert: { ...req.body.trainingCert },
     };
 
-    await collectionPfInfo.updateOne({ userId: id }, { $set: updateData });
-    const fetchedData = await collectionPfInfo.findOne({ userId: id });
+    await collectionPfInfo.updateOne(
+      { userId: id },
+      { $set: updateData },
+      { upsert: fetchedData ? false : true, returnDocument: "after" }
+    );
 
     res.status(201).json(fetchedData);
   } catch (e) {
@@ -100,99 +104,6 @@ const uploadFile = async (req, res) => {
     res
       .status(500)
       .json({ error: `Error while fetching data from the database: ${e}` });
-  }
-};
-
-const getAllCandidateEasyApplied = async (req, res) => {
-  try {
-    upload.createIndex({ postId: 1 });
-    collectionPosts.createIndex({ _id: 1 });
-    const foundItems = await upload
-      .aggregate([
-        {
-          $lookup: {
-            from: "EmployeePostJobs",
-            let: { postId: "$postId" },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [
-                      { $eq: [{ $strLenCP: "$$postId" }, 24] }, // Ensure postId length is 24 characters
-                      {
-                        $eq: [
-                          "$_id",
-                          {
-                            $convert: {
-                              input: "$$postId",
-                              to: "objectId",
-                              onError: "$$REMOVE",
-                              onNull: "$$REMOVE",
-                            },
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                },
-              },
-            ],
-            as: "post",
-          },
-        },
-        { $unwind: "$post" },
-        {
-          $lookup: {
-            from: "JobSeekerProfileInfo",
-            localField: "userId",
-            foreignField: "userId",
-            as: "jobSeekerProfile",
-          },
-        },
-        {
-          $addFields: {
-            candidates: {
-              $cond: {
-                if: { $eq: ["$type", "directApply"] },
-                then: {
-                  $mergeObjects: [
-                    { $arrayElemAt: ["$jobSeekerProfile", 0] },
-                    "$$ROOT",
-                  ],
-                },
-                else: "$$ROOT",
-              },
-            },
-          },
-        },
-        {
-          $project: {
-            "candidates.experience": 0,
-            "candidates.education": 0,
-            "candidates.profile": 0,
-            "candidates.trainingCert": 0,
-          },
-        },
-        {
-          $group: {
-            _id: "$post._id",
-            post: { $first: "$post" },
-            candidates: { $push: "$candidates" },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            post: 1,
-            candidates: 1,
-          },
-        },
-      ])
-      .toArray();
-
-    res.status(201).json(foundItems);
-  } catch (e) {
-    res.status(500).json({ error: `Error while saving to a database ${e}` });
   }
 };
 
@@ -408,7 +319,6 @@ const getsaveJobs = async (req, res) => {
 module.exports = {
   profileInfo,
   uploadFile,
-  getAllCandidateEasyApplied,
   profileInfoById,
   findOneAndUpdate,
   appliedJobsByUserId,

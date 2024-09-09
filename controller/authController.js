@@ -95,7 +95,7 @@ const register = async (req, res) => {
     mobile_no,
     password,
     confirm_pass,
-    type,
+    userType,
     first_name,
     phone_no,
     middle_name,
@@ -111,7 +111,7 @@ const register = async (req, res) => {
     }
 
     const isEmail =
-      type === "employee"
+      userType === "employee"
         ? await collectionEmp.findOne({ email })
         : await collectionSe.findOne({ email });
 
@@ -126,7 +126,7 @@ const register = async (req, res) => {
     const salt = await bcrypt.genSalt(10);
     const hashedPass = await bcrypt.hash(password, salt);
 
-    if (type === "employee") {
+    if (userType === "employee") {
       const data = await collectionEmp.insertOne({
         company_name,
         email,

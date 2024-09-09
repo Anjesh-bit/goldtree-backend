@@ -3,7 +3,6 @@ const jobSeekerRoute = express.Router();
 const {
   profileInfo,
   uploadFile,
-  getAllCandidateEasyApplied,
   findOneAndUpdate,
   profileInfoById,
   appliedJobsByUserId,
@@ -23,11 +22,6 @@ jobSeekerRoute
   .route("/jobseeker-profile-info/:id")
   .get(profileInfoById)
   .put(findOneAndUpdate);
-
-jobSeekerRoute
-  .route("/upload")
-  .post(determineFieldName, dynamicUpload, uploadFile)
-  .get(getAllCandidateEasyApplied);
 
 jobSeekerRoute.route("/shortlist").put(uploadFile).get(shortListedJobs);
 
