@@ -27,7 +27,7 @@ empRoute
   .get(profileInfoById);
 
 empRoute.route("/emp-post-job-info").post(postJob).get(getAllPosts);
-empRoute.route("/get-emp-post-single/:id").get(findByIdAndGet);
+empRoute.route("/get-emp-post-single").get(findByIdAndGet);
 empRoute
   .route("/upload")
   .post(determineFieldName, dynamicUpload, uploadFile)

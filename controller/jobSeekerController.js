@@ -130,7 +130,7 @@ const appliedJobsByUserId = async (req, res) => {
                 $match: {
                   $expr: {
                     $and: [
-                      { $eq: [{ $strLenCP: "$$postId" }, 24] }, // Ensure postId length is 24 characters
+                      { $eq: [{ $strLenCP: "$$postId" }, 24] },
                       {
                         $eq: [
                           "$_id",
@@ -187,13 +187,13 @@ const uploadProfile = () => {};
 const shortListedJobs = async (req, res) => {
   try {
     const { userId, type } = req.query;
-
     const foundItems = await upload
       .aggregate([
         {
           $match: {
             type,
             userId,
+            shorlisted: true,
           },
         },
         {
@@ -204,22 +204,7 @@ const shortListedJobs = async (req, res) => {
               {
                 $match: {
                   $expr: {
-                    $and: [
-                      { $eq: [{ $strLenCP: "$$postId" }, 24] }, // Ensure postId length is exactly 24
-                      {
-                        $eq: [
-                          "$_id",
-                          {
-                            $convert: {
-                              input: "$$postId",
-                              to: "objectId",
-                              onError: "$$REMOVE",
-                              onNull: "$$REMOVE",
-                            },
-                          },
-                        ],
-                      },
-                    ],
+                    $eq: ["$_id", { $toObjectId: "$$postId" }],
                   },
                 },
               },

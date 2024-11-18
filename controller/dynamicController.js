@@ -14,6 +14,7 @@ const profileUpdate = async (req, res) => {
     const uploadData = {
       profile_images: process.env.CLIENT_IMAGE_URI.concat(req.file.filename),
     };
+
     if (queryType === "jobSeeker") {
       collection = jobSeekerPfInfo;
     } else if (queryType === "employee") {
@@ -21,8 +22,9 @@ const profileUpdate = async (req, res) => {
     } else {
       return res.status(400).json({ error: "Invalid query type" });
     }
-    
+
     const matchedData = await collection.findOne({ userId: req.query.id });
+
     const finalData = { ...matchedData, ...uploadData };
     const updateResult = await collection.updateOne(query, {
       $set: finalData,

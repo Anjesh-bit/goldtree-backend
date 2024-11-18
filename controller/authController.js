@@ -199,7 +199,8 @@ const logout = (req, res) => {
 };
 
 const changePassword = async (req, res) => {
-  const { old_password, new_password } = req.body;
+  const { old_password, new_password, confirm_password } = req.body;
+
   const { type, userId } = req.query;
   try {
     const userCollection = type === "jobSeeker" ? collectionSe : collectionEmp;
@@ -212,7 +213,21 @@ const changePassword = async (req, res) => {
     const isMatch = await bcrypt.compare(old_password, userData.password);
 
     if (!isMatch)
-      return res.status(400).json({ message: "Password didn't match" });
+      return res
+        .status(400)
+        .json({ message: "Your old password didn't match." });
+
+    if (old_password === new_password) {
+      return res.status(400).json({
+        message: "The password you entered should not be same as old password.",
+      });
+    }
+
+    if (confirm_password !== new_password) {
+      return res.status(400).json({
+        message: "Your new password and confirm  password didn't match.",
+      });
+    }
 
     const hashedPassword = await bcrypt.hash(new_password, 10);
 

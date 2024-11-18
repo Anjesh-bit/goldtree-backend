@@ -192,8 +192,9 @@ const getAllPosts = async (req, res) => {
 
 const findByIdAndGet = async (req, res) => {
   try {
-    const { id } = req.params;
+    const { id, userId } = req.query;
     const pipeline = [
+      { $match: { userId } },
       {
         $project: {
           _id: 0,
@@ -224,7 +225,6 @@ const shortListedCandidates = async (req, res) => {
         {
           $match: {
             shorlisted: true,
-            userId,
           },
         },
         {
@@ -261,6 +261,23 @@ const shortListedCandidates = async (req, res) => {
         {
           $unwind: "$postInfo",
         },
+
+        {
+          $lookup: {
+            from: "JobSeekerProfileInfo",
+            localField: "userId",
+            foreignField: "userId",
+            as: "profileInfo",
+          },
+        },
+        {
+          $unwind: "$profileInfo",
+        },
+        {
+          $match: {
+            "postInfo.userId": userId,
+          },
+        },
       ])
       .toArray();
 
@@ -286,11 +303,6 @@ const getAllCandidateEasyApplied = async (req, res) => {
     const foundItems = await upload
       .aggregate([
         {
-          $match: {
-            userId,
-          },
-        },
-        {
           $lookup: {
             from: "EmployeePostJobs",
             let: { postId: "$postId" },
@@ -299,7 +311,7 @@ const getAllCandidateEasyApplied = async (req, res) => {
                 $match: {
                   $expr: {
                     $and: [
-                      { $eq: [{ $strLenCP: "$$postId" }, 24] }, // Ensure postId length is 24 characters
+                      { $eq: [{ $strLenCP: "$$postId" }, 24] },
                       {
                         $eq: [
                           "$_id",
@@ -323,6 +335,11 @@ const getAllCandidateEasyApplied = async (req, res) => {
         },
         { $unwind: "$post" },
         {
+          $match: {
+            "post.userId": userId,
+          },
+        },
+        {
           $lookup: {
             from: "JobSeekerProfileInfo",
             localField: "userId",
@@ -341,7 +358,14 @@ const getAllCandidateEasyApplied = async (req, res) => {
                     "$$ROOT",
                   ],
                 },
-                else: "$$ROOT",
+                else: {
+                  $arrayToObject: {
+                    $filter: {
+                      input: { $objectToArray: "$$ROOT" },
+                      cond: { $ne: ["$$this.k", "jobSeekerProfile"] },
+                    },
+                  },
+                },
               },
             },
           },
