@@ -159,6 +159,7 @@ const getPostsByUserId = async (req, res) => {
 const profileInfoById = getProfileInfoByUserId(collectionPfInfo);
 
 const getAllPosts = async (req, res) => {
+  console.log("jjjjjjjjjjjjjj");
   try {
     const foundItems = await collectionPosts
       .aggregate([
@@ -191,6 +192,7 @@ const getAllPosts = async (req, res) => {
 };
 
 const findByIdAndGet = async (req, res) => {
+  console.log("jajajajjajaajja");
   try {
     const { id, userId } = req.query;
     const pipeline = [

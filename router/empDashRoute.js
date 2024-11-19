@@ -5,11 +5,9 @@ const {
   findAllProfileInfo,
   findOneAndDelete,
   findOneAndUpdate,
-  postJob,
   getPostsByUserId,
   profileInfoById,
   findOneAndUpdatePostJobs,
-  getAllPosts,
   findByIdAndGet,
   shortListedCandidates,
   getAllCandidateEasyApplied,
@@ -26,8 +24,6 @@ empRoute
   .put(findOneAndUpdate)
   .get(profileInfoById);
 
-empRoute.route("/emp-post-job-info").post(postJob).get(getAllPosts);
-empRoute.route("/get-emp-post-single").get(findByIdAndGet);
 empRoute
   .route("/upload")
   .post(determineFieldName, dynamicUpload, uploadFile)
