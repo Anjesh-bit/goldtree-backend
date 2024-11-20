@@ -8,7 +8,6 @@ const {
   getPostsByUserId,
   profileInfoById,
   findOneAndUpdatePostJobs,
-  findByIdAndGet,
   shortListedCandidates,
   getAllCandidateEasyApplied,
 } = require("../controller/empDashController");
@@ -16,7 +15,7 @@ const { uploadFile } = require("../controller/jobSeekerController");
 const { determineFieldName } = require("../middleware/fields");
 const { dynamicUpload } = require("../middleware/dynamicUpload");
 
-empRoute.route("/emp-profile-info").post(profileInfo).get(findAllProfileInfo);
+empRoute.route("/emp-profile-info").post(profileInfo);
 
 empRoute
   .route("/emp-profile-info/:id")

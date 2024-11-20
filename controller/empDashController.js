@@ -44,8 +44,6 @@ const findAllProfileInfo = async (req, res) => {
     res.status(201).json(foundItems);
   } catch (e) {
     res.status(500).json({ error: `Error while saving to a database ${e}` });
-  } finally {
-    await mongoClient.close();
   }
 };
 

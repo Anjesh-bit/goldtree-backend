@@ -34,6 +34,6 @@ jobSeekerRoute.route("/save-jobs/:jobSeekUserId").get(getsaveJobs);
 
 jobSeekerRoute.route("/jobSeeker-applied-jobs").get(appliedJobsByUserId);
 jobSeekerRoute.route("/profile-update").post(uploadProfile);
-jobSeekerRoute.route("/search").get(globalSearch);
+
 
 module.exports = jobSeekerRoute;
