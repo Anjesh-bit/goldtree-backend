@@ -157,7 +157,6 @@ const getPostsByUserId = async (req, res) => {
 const profileInfoById = getProfileInfoByUserId(collectionPfInfo);
 
 const getAllPosts = async (req, res) => {
-  console.log("jjjjjjjjjjjjjj");
   try {
     const foundItems = await collectionPosts
       .aggregate([
@@ -190,9 +189,9 @@ const getAllPosts = async (req, res) => {
 };
 
 const findByIdAndGet = async (req, res) => {
-  console.log("jajajajjajaajja");
   try {
     const { id, userId } = req.query;
+
     const pipeline = [
       { $match: { userId } },
       {
@@ -203,17 +202,26 @@ const findByIdAndGet = async (req, res) => {
         },
       },
     ];
+
     const companyData = await collectionPfInfo.aggregate(pipeline).toArray();
 
     const foundItems = await collectionPosts.findOne({ _id: new ObjectId(id) });
 
     if (foundItems) {
-      res.status(201).json({ ...foundItems, ...companyData[0] });
+      const timestamp = foundItems._id.getTimestamp();
+
+      res.status(201).json({
+        ...foundItems,
+        ...companyData[0],
+        timestamp,
+      });
+    } else {
+      res.status(404).json({ error: "Item not found" });
     }
   } catch (e) {
-    res
-      .status(500)
-      .json({ error: `Error while fetching data from the database: ${e}` });
+    res.status(500).json({
+      error: `Error while fetching data from the database: ${e}`,
+    });
   }
 };
 
@@ -401,6 +409,24 @@ const getAllCandidateEasyApplied = async (req, res) => {
   }
 };
 
+const findEmployeeProfileById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const objectId = new ObjectId(id);
+    const employeeProfile = await collectionPfInfo.findOne({ _id: objectId });
+
+    if (employeeProfile) {
+      return res.status(200).json(employeeProfile);
+    } else {
+      return res.status(404).json({ message: "Employee profile not found" });
+    }
+  } catch (e) {
+    res
+      .status(500)
+      .json({ error: `Error while fetching from the database: ${e.message}` });
+  }
+};
+
 module.exports = {
   profileInfo,
   findAllProfileInfo,
@@ -412,6 +438,7 @@ module.exports = {
   getAllPosts,
   findOneAndUpdatePostJobs,
   findByIdAndGet,
+  findEmployeeProfileById,
   shortListedCandidates,
   getAllCandidateEasyApplied,
 };

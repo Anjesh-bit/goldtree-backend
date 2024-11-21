@@ -15,4 +15,5 @@ userRouter.post("/register", register);
 userRouter.post("/token/:type", refreshToken);
 userRouter.post("/change-password", changePassword);
 userRouter.post("/deactivate-account", deactivateAccount);
+
 module.exports = userRouter;
