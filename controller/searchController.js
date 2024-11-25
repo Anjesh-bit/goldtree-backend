@@ -8,25 +8,31 @@ const globalSearch = async (req, res) => {
   try {
     const { q, vacancyType, careerLevel, gender } = req.query;
 
-    const matchConditions = [
-      { job_title: { $regex: new RegExp(q, "i") } },
-      { company_name: { $regex: new RegExp(q, "i") } },
-    ];
+    const matchFilters = [];
+
+    if (q) {
+      matchFilters.push({
+        $or: [
+          { job_title: { $regex: new RegExp(q, "i") } },
+          { company_name: { $regex: new RegExp(q, "i") } },
+        ],
+      });
+    }
 
     if (vacancyType) {
-      matchConditions.push({
+      matchFilters.push({
         service_type: { $in: createRegexArray(vacancyType) },
       });
     }
 
     if (careerLevel) {
-      matchConditions.push({
+      matchFilters.push({
         job_level: { $in: createRegexArray(careerLevel) },
       });
     }
 
     if (gender) {
-      matchConditions.push({
+      matchFilters.push({
         gender: { $in: createRegexArray(gender) },
       });
     }
@@ -34,9 +40,7 @@ const globalSearch = async (req, res) => {
     const foundItems = await collectionPosts
       .aggregate([
         {
-          $match: {
-            $or: matchConditions,
-          },
+          $match: { $and: matchFilters },
         },
       ])
       .toArray();

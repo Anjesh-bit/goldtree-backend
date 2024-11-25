@@ -1,7 +1,7 @@
 const createRegexArray = (commaSeparatedString) => {
   return commaSeparatedString
     .split(",")
-    .map((item) => item.trim().toLowerCase());
+    .map((item) => new RegExp(item.trim(), "i"));
 };
 
 module.exports = { createRegexArray };
