@@ -11,7 +11,7 @@ const {
   shortListedCandidates,
   getAllCandidateEasyApplied,
 } = require("../controller/empDashController");
-const { uploadFile } = require("../controller/jobSeekerController");
+const { handleJobApplication } = require("../controller/jobSeekerController");
 const { determineFieldName } = require("../middleware/fields");
 const { dynamicUpload } = require("../middleware/dynamicUpload");
 
@@ -25,7 +25,7 @@ empRoute
 
 empRoute
   .route("/upload")
-  .post(determineFieldName, dynamicUpload, uploadFile)
+  .post(determineFieldName, dynamicUpload, handleJobApplication)
   .get(getAllCandidateEasyApplied);
 empRoute
   .route("/emp-posts-by-id/:id")

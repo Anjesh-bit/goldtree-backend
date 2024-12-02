@@ -1,10 +1,10 @@
 const { mongoClient } = require("../db/connection");
-
 const database = mongoClient.db("GoldTree");
-const collection = database.collection("JobSeekerPostJobs");
 const upload = database.collection("Upload");
 const collectionPosts = database.collection("EmployeePostJobs");
 const collectionPfInfo = database.collection("JobSeekerProfileInfo");
+const ShortListJobInfo = database.collection("ShortListJobInfo");
+const SavedJobInfo = database.collection("SavedJobInfo");
 const dotenv = require("dotenv");
 const getProfileInfoByUserId = require("../services/profileService");
 const { ObjectId } = require("mongodb");
@@ -67,43 +67,71 @@ const findOneAndUpdate = async (req, res) => {
   }
 };
 
-const uploadFile = async (req, res) => {
+const handleJobApplication = async (req, res) => {
   try {
-    const isShorList = req.query.shortList === "shortlist";
+    const isShortList = req.query.shortList === "shortlist";
 
-    const { uploadId, type } = req.query;
-    const convertedId = new ObjectId(uploadId);
-    const filter = {
-      _id: convertedId,
-      type,
-    };
-    const foundItems = await upload.findOne(filter);
+    //for posting job application
+    const { userId, type: applyType, postId } = req.body;
 
-    const uploadData = isShorList
-      ? await upload.updateOne(filter, {
-          $set: { ...foundItems, shorlisted: true },
-        })
-      : await upload.insertOne({
-          ...req.body,
-          upload_cv: process.env.CLIENT_IMAGE_URI.concat(req.file.filename),
-        });
+    // for shortlisted candidates
+    const { uploadId, type, postId: employeePostId } = req.query;
 
-    if (uploadData) {
-      const foundItems = await upload.findOne({
-        _id: isShorList ? convertedId : uploadData.insertedId,
+    const isAlreadyApplied = await upload.findOne({
+      userId,
+      type: applyType,
+      postId,
+    });
+
+    if (isAlreadyApplied) {
+      return res
+        .status(409)
+        .json({ error: "You have already posted for this job." });
+    }
+
+    if (isShortList) {
+      const alreadyShortlisted = await ShortListJobInfo.findOne({
+        postId: employeePostId,
+        userId: uploadId,
+        type,
       });
 
-      if (foundItems?.shorlisted) {
+      if (alreadyShortlisted) {
         return res
           .status(409)
-          .json({ message: "Candidates have already been shortlisted." });
+          .json({ message: "Candidate has already been shortlisted." });
       }
-      res.status(201).json(foundItems);
+
+      const shortListData = await ShortListJobInfo.insertOne({
+        postId: employeePostId,
+        userId: uploadId,
+        type,
+        shortlistedAt: new Date(),
+      });
+
+      return res.status(201).json({
+        message: "Candidate successfully shortlisted.",
+        shortListData,
+      });
     }
+
+    
+
+    const uploadData = await upload.insertOne({
+      ...req.body,
+      upload_cv: process.env.CLIENT_IMAGE_URI.concat(req.file.filename),
+    });
+
+    if (uploadData) {
+      const insertedItem = await upload.findOne({ _id: uploadData.insertedId });
+      return res.status(201).json(insertedItem);
+    }
+
+    res.status(400).json({ error: "Failed to upload the file." });
   } catch (e) {
     res
       .status(500)
-      .json({ error: `Error while fetching data from the database: ${e}` });
+      .json({ error: `Error while processing the application: ${e.message}` });
   }
 };
 
@@ -148,64 +176,9 @@ const appliedJobsByUserId = async (req, res) => {
                   },
                 },
               },
-            ],
-            as: "postInfo",
-          },
-        },
-        {
-          $unwind: "$postInfo",
-        },
-        {
-          $group: {
-            _id: "$userId",
-            docs: { $push: "$$ROOT" },
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            data: {
-              $cond: {
-                if: { $gt: [{ $size: "$docs" }, 0] },
-                then: "$docs",
-                else: null,
-              },
-            },
-          },
-        },
-      ])
-      .toArray();
-
-    res.status(201).json(foundItems);
-  } catch (e) {
-    res.status(500).json({ error: `Error while saving to a database ${e}` });
-  }
-};
-
-const uploadProfile = () => {};
-
-const shortListedJobs = async (req, res) => {
-  try {
-    const { userId, type } = req.query;
-    const foundItems = await upload
-      .aggregate([
-        {
-          $match: {
-            type,
-            userId,
-            shorlisted: true,
-          },
-        },
-        {
-          $lookup: {
-            from: "EmployeePostJobs",
-            let: { postId: "$postId" },
-            pipeline: [
               {
-                $match: {
-                  $expr: {
-                    $eq: ["$_id", { $toObjectId: "$$postId" }],
-                  },
+                $addFields: {
+                  postId: "$$postId",
                 },
               },
             ],
@@ -213,17 +186,21 @@ const shortListedJobs = async (req, res) => {
           },
         },
         {
-          $unwind: "$postInfo",
-        },
-        {
-          $group: {
-            _id: "$userId",
-            data: { $push: "$$ROOT" },
+          $unwind: {
+            path: "$postInfo",
           },
         },
         {
           $project: {
             _id: 0,
+            postId: "$postInfo._id",
+            apply_before: "$postInfo.apply_before",
+            job_title: "$postInfo.job_title",
+            job_level: "$postInfo.job_level",
+            job_location: "$postInfo.job_location",
+            degree_name: "$postInfo.degree_name",
+            education_qual_desc: "$postInfo.education_qual_desc",
+            company_name: "$postInfo.company_name",
           },
         },
       ])
@@ -231,84 +208,137 @@ const shortListedJobs = async (req, res) => {
 
     res.status(201).json(foundItems);
   } catch (e) {
-    res.status(500).json({ error: `Error while saving to a database ${e}` });
+    res.status(500).json({ error: `Error while saving to a database: ${e}` });
+  }
+};
+
+const uploadProfile = () => {};
+
+const shortListedJobs = async (req, res) => {
+  try {
+    const { userId } = req.query;
+
+    const foundItems = await ShortListJobInfo.aggregate([
+      {
+        $match: {
+          userId,
+        },
+      },
+      {
+        $lookup: {
+          from: "EmployeePostJobs",
+          let: { postId: { $toObjectId: "$postId" } },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$postId"] },
+              },
+            },
+          ],
+          as: "jobDetails",
+        },
+      },
+      {
+        $unwind: "$jobDetails",
+      },
+      {
+        $replaceRoot: { newRoot: "$jobDetails" },
+      },
+    ]).toArray();
+
+    if (foundItems) {
+      res.status(200).json(foundItems);
+    } else {
+      res.status(200).json([]);
+    }
+  } catch (e) {
+    res.status(500).json({ error: `Error while fetching data: ${e}` });
   }
 };
 
 const saveJobs = async (req, res) => {
   try {
-    const { id, jobSeekUserId } = req.query;
-    const convertedId = new ObjectId(id);
-    const foundItems = await collectionPosts
-      .aggregate([
-        {
-          $match: {
-            _id: convertedId,
-          },
-        },
-      ])
-      .toArray();
-    const foundOne = await collectionPosts.findOne({ _id: convertedId });
-    if (foundOne?.saved) {
-      return res.status(409).json({ messsage: "This job is already saved." });
+    const { id: postId, jobSeekUserId: userId } = req.query;
+
+    const jobExists = await collectionPosts.findOne({
+      _id: new ObjectId(postId),
+    });
+
+    if (!jobExists) {
+      return res.status(404).json({ message: "Job not found." });
     }
-    await collectionPosts.updateOne(
-      { _id: convertedId },
-      { $set: { ...foundItems[0], saved: true, jobSeekUserId } }
-    );
-    const updatedFound = await collectionPosts.findOne({ _id: convertedId });
-    res.status(201).json(updatedFound);
+
+    const alreadySaved = await SavedJobInfo.findOne({ postId, userId });
+    if (alreadySaved) {
+      return res
+        .status(409)
+        .json({ message: "This job is already saved by the user." });
+    }
+
+    await SavedJobInfo.insertOne({
+      postId,
+      userId,
+      savedAt: new Date(),
+    });
+
+    res.status(201).json({ message: "Job saved successfully." });
   } catch (e) {
-    res.status(500).json({ error: `Error while saving to a database ${e}` });
+    res.status(500).json({ error: `Error while saving to the database: ${e}` });
   }
 };
 
-const getsaveJobs = async (req, res) => {
+const getSavedJobs = async (req, res) => {
   try {
     const { jobSeekUserId } = req.params;
-
-    const foundItems = await collectionPosts
-      .aggregate([
-        {
-          $match: {
-            jobSeekUserId,
-            saved: true,
-          },
+    console.log(typeof jobSeekUserId);
+    const savedJobs = await SavedJobInfo.aggregate([
+      {
+        $match: {
+          userId: jobSeekUserId,
         },
-        {
-          $group: {
-            _id: "$jobSeekUserId",
-            data: {
-              $push: {
-                postInfo: "$$ROOT",
+      },
+      {
+        $lookup: {
+          from: "EmployeePostJobs",
+          let: { postId: { $toObjectId: "$postId" } },
+          pipeline: [
+            {
+              $match: {
+                $expr: { $eq: ["$_id", "$$postId"] },
               },
             },
-          },
+          ],
+          as: "jobDetails",
         },
-        {
-          $project: {
-            _id: 0,
-          },
-        },
-      ])
-      .toArray();
+      },
+      {
+        $unwind: "$jobDetails",
+      },
+      {
+        $replaceRoot: { newRoot: "$jobDetails" },
+      },
+    ]).toArray();
 
-    if (foundItems) {
-      res.status(201).json(foundItems);
+    if (!savedJobs.length) {
+      return res
+        .status(204)
+        .json({ message: "No saved jobs found for this user." });
     }
+
+    res.status(200).json(savedJobs);
   } catch (e) {
-    res.status(500).json({ error: `Error while saving to a database ${e}` });
+    res.status(500).json({ error: `Error while fetching saved jobs: ${e}` });
   }
 };
 
 module.exports = {
   profileInfo,
-  uploadFile,
+  handleJobApplication,
   profileInfoById,
   findOneAndUpdate,
   appliedJobsByUserId,
   uploadProfile,
   shortListedJobs,
   saveJobs,
-  getsaveJobs,
+  getSavedJobs,
 };

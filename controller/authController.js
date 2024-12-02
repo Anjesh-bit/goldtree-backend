@@ -5,6 +5,7 @@ const { generateToken, verifyToken } = require("../utils/generateToken");
 const database = mongoClient.db("GoldTree");
 const collectionEmp = database.collection("AuthEmp");
 const collectionSe = database.collection("AuthSeeker");
+
 const dotenv = require("dotenv");
 const { ObjectId } = require("mongodb");
 const getExpiration = require("../utils/expiryDate");
@@ -36,7 +37,17 @@ const login = async (req, res) => {
         : await collectionSe.findOne({ email });
 
     const passw = user && (await bcrypt.compare(password, user.password));
+
     if (user && passw) {
+      type === "employee"
+        ? await collectionEmp.updateOne(
+            { email },
+            { $unset: { deactivatedAt: null, deactivateReason: null } }
+          )
+        : await collectionSe.updateOne(
+            { email },
+            { $unset: { deactivatedAt: null, deactivateReason: null } }
+          );
       const refreshToken = generateToken(
         user._id,
         process.env.JWT_SECRETE_REFRESH,
@@ -102,6 +113,14 @@ const register = async (req, res) => {
     last_name,
   } = req.body;
 
+  const collectionEmployee = await database.createCollection(
+    "EmployeeProfileInfo"
+  );
+
+  const collectionJobSeeker = await database.createCollection(
+    "JobSeekerProfileInfo"
+  );
+
   try {
     const fieldsArray = isEmptyFields(req, res);
     if (fieldsArray.length > 0) {
@@ -137,6 +156,16 @@ const register = async (req, res) => {
       });
       if (data) {
         const foundData = await collectionEmp.findOne({ _id: data.insertedId });
+        await collectionEmployee.insertOne({
+          userId: foundData?._id.toString(),
+          personalInfo: { company_name },
+          primaryContact: {
+            full_name: company_name,
+            phone: mobile_no,
+            email,
+          },
+        });
+
         res.status(201).json(foundData);
       }
     } else {
@@ -151,6 +180,14 @@ const register = async (req, res) => {
       });
       if (data) {
         const foundData = await collectionSe.findOne({ _id: data.insertedId });
+        await collectionJobSeeker.insertOne({
+          userId: foundData?._id.toString(),
+          profile: {
+            full_name: first_name.concat(" ", middle_name, " ", last_name),
+            phone_no: mobile_no,
+            email,
+          },
+        });
         res.status(201).json(foundData);
       }
     }
@@ -208,7 +245,7 @@ const changePassword = async (req, res) => {
     const userData = await userCollection.findOne({
       _id: userObjectId,
     });
-    
+
     if (!userData) return res.status(404).json({ message: "User not found" });
 
     const isMatch = await bcrypt.compare(old_password, userData.password);

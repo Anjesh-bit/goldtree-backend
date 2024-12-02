@@ -5,7 +5,7 @@ const database = mongoClient.db("GoldTree");
 const upload = database.collection("Upload");
 const collectionPosts = database.collection("EmployeePostJobs");
 const collectionPfInfo = database.collection("EmployeeProfileInfo");
-
+const shortListJobInfo = database.collection("ShortListJobInfo");
 const profileInfo = async (req, res) => {
   const { userId } = req.body;
   try {
@@ -227,24 +227,19 @@ const findByIdAndGet = async (req, res) => {
 
 const shortListedCandidates = async (req, res) => {
   const { userId } = req.query;
+
   try {
-    const foundItems = await upload
+    const foundItems = await shortListJobInfo
       .aggregate([
-        {
-          $match: {
-            shorlisted: true,
-          },
-        },
         {
           $lookup: {
             from: "EmployeePostJobs",
-            let: { postId: "$postId" },
+            let: { postId: "$postId", jobSeekerId: "$userId" },
             pipeline: [
               {
                 $match: {
                   $expr: {
                     $and: [
-                      { $eq: [{ $strLenCP: "$$postId" }, 24] },
                       {
                         $eq: [
                           "$_id",
@@ -258,6 +253,8 @@ const shortListedCandidates = async (req, res) => {
                           },
                         ],
                       },
+
+                      { $eq: ["$userId", userId] },
                     ],
                   },
                 },
@@ -266,6 +263,7 @@ const shortListedCandidates = async (req, res) => {
             as: "postInfo",
           },
         },
+
         {
           $unwind: "$postInfo",
         },
@@ -278,12 +276,31 @@ const shortListedCandidates = async (req, res) => {
             as: "profileInfo",
           },
         },
+
         {
           $unwind: "$profileInfo",
         },
+
         {
-          $match: {
-            "postInfo.userId": userId,
+          $project: {
+            _id: 0,
+            profileInfo: 1,
+            postId: "$postInfo._id",
+            jobLocation: "$postInfo.job_location",
+            companyName: "$postInfo.company_name",
+          },
+        },
+        {
+          $replaceRoot: {
+            newRoot: {
+              $mergeObjects: [
+                "$profileInfo",
+                {
+                  postId: "$postId",
+                  companyName: "$companyName",
+                },
+              ],
+            },
           },
         },
       ])
@@ -292,9 +309,9 @@ const shortListedCandidates = async (req, res) => {
     if (foundItems.length > 0) {
       return res.status(200).json(foundItems);
     } else {
-      return res
-        .status(404)
-        .json({ message: "No candidates found for this user." });
+      return res.status(404).json({
+        message: "No shortlisted candidates found for this employee.",
+      });
     }
   } catch (e) {
     res.status(500).json({

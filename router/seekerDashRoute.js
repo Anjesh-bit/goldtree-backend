@@ -2,14 +2,14 @@ const express = require("express");
 const jobSeekerRoute = express.Router();
 const {
   profileInfo,
-  uploadFile,
+  handleJobApplication,
   findOneAndUpdate,
   profileInfoById,
   appliedJobsByUserId,
   uploadProfile,
   shortListedJobs,
   saveJobs,
-  getsaveJobs,
+  getSavedJobs,
 } = require("../controller/jobSeekerController");
 const { profileUpdate } = require("../controller/dynamicController");
 const { determineFieldName } = require("../middleware/fields");
@@ -23,17 +23,19 @@ jobSeekerRoute
   .get(profileInfoById)
   .put(findOneAndUpdate);
 
-jobSeekerRoute.route("/shortlist").put(uploadFile).get(shortListedJobs);
+jobSeekerRoute
+  .route("/shortlist")
+  .put(handleJobApplication)
+  .get(shortListedJobs);
 
 jobSeekerRoute
   .route("/profile-update")
   .put(determineFieldName, dynamicUpload, profileUpdate);
 
 jobSeekerRoute.route("/save-jobs").put(saveJobs);
-jobSeekerRoute.route("/save-jobs/:jobSeekUserId").get(getsaveJobs);
+jobSeekerRoute.route("/save-jobs/:jobSeekUserId").get(getSavedJobs);
 
 jobSeekerRoute.route("/jobSeeker-applied-jobs").get(appliedJobsByUserId);
 jobSeekerRoute.route("/profile-update").post(uploadProfile);
-
 
 module.exports = jobSeekerRoute;
