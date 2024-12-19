@@ -6,6 +6,8 @@ const upload = database.collection("Upload");
 const collectionPosts = database.collection("EmployeePostJobs");
 const collectionPfInfo = database.collection("EmployeeProfileInfo");
 const shortListJobInfo = database.collection("ShortListJobInfo");
+collectionPosts.createIndex({ status: 1 });
+
 const profileInfo = async (req, res) => {
   const { userId } = req.body;
   try {
@@ -104,6 +106,7 @@ const postJob = async (req, res) => {
     const postJobs = await collectionPosts.insertOne({
       ...req.body,
       company_name: companyName?.[0]?.company_name,
+      status: "posted",
     });
 
     if (postJobs) {
