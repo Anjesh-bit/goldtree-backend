@@ -61,11 +61,11 @@ const login = async (req, res) => {
       );
 
       res.cookie("refreshToken", refreshToken, {
-        httpOnly: true,
+        httpOnly: false,
         expires: getExpiration(7),
-        secure: false, // Set to true if using HTTPS
-        sameSite: "lax", // Prevents the cookie from being sent in cross-site requests
-        path: "/", // Set the path to root '/' or specific path if necessary
+        secure: false,
+        sameSite: "lax",
+        path: "/",
       });
 
       switch (type) {

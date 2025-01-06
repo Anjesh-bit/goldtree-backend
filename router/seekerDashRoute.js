@@ -14,7 +14,6 @@ const {
 const { profileUpdate } = require("../controller/dynamicController");
 const { determineFieldName } = require("../middleware/fields");
 const { dynamicUpload } = require("../middleware/dynamicUpload");
-const { globalSearch } = require("../controller/searchController");
 
 jobSeekerRoute.route("/jobseeker-profile-info").post(profileInfo);
 

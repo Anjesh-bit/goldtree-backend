@@ -1,6 +1,6 @@
 const express = require("express");
 const dotenv = require("dotenv");
-const { connect, mongoClient } = require("./db/connection");
+const { connect } = require("./db/connection");
 const userRouter = require("./router/authRoute");
 const empDashRouter = require("./router/empDashRoute");
 const jobSeekerRouter = require("./router/seekerDashRoute");
@@ -10,10 +10,7 @@ const cors = require("cors");
 const globalAuth = require("./middleware/globalAuth");
 const cookieParser = require("cookie-parser");
 const cron = require("node-cron");
-const getExpirationDatePost = require("./utils/getExpirationDatePost");
-const database = mongoClient.db("GoldTree");
-const collectionPosts = database.collection("EmployeePostJobs");
-const PAGE_SIZE = 1000;
+const scheduleJobStatus = require("./services/scheduleJobStatus");
 
 dotenv.config();
 
@@ -38,40 +35,4 @@ app.listen(PORT, () => {
   console.log(`GoldTree Is Listening To Port ${PORT}`);
 });
 
-cron.schedule("* * * * *", async () => {
-  try {
-    let hasMoreData = true;
-    let skip = 0;
-
-    while (hasMoreData) {
-      const jobs = await collectionPosts
-        .find({ status: "posted" })
-        .skip(skip)
-        .limit(PAGE_SIZE)
-        .toArray();
-
-      if (jobs.length === 0) {
-        hasMoreData = false;
-        break;
-      }
-
-      const expiredJobs = jobs.filter((job) => {
-        const { apply_before: applyBeforeDays } = job;
-        const createdAt = job._id.getTimestamp();
-        return getExpirationDatePost(applyBeforeDays, createdAt);
-      });
-
-      if (expiredJobs.length > 0) {
-        const expiredJobIds = expiredJobs.map((job) => job._id);
-        await collectionPosts.updateMany(
-          { _id: { $in: expiredJobIds } },
-          { $set: { status: "closed", updatedAt: new Date() } }
-        );
-      }
-
-      skip += PAGE_SIZE;
-    }
-  } catch (error) {
-    console.error("Error in cron job execution:", error);
-  }
-});
+cron.schedule("0 0 * * *", scheduleJobStatus);

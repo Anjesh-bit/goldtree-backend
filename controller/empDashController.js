@@ -1,6 +1,8 @@
 const { mongoClient } = require("../db/connection");
 const { ObjectId } = require("mongodb");
 const getProfileInfoByUserId = require("../services/profileService");
+const JOB_STATUS = require("../constant/appConstant");
+const jobStatusService = require("../services/jobStatusService");
 const database = mongoClient.db("GoldTree");
 const upload = database.collection("Upload");
 const collectionPosts = database.collection("EmployeePostJobs");
@@ -85,7 +87,7 @@ const findOneAndUpdate = async (req, res) => {
     await collectionPfInfo.updateOne(
       { userId: id },
       { $set: updateData },
-      { upsert: fetchedData ? false : true, returnDocument: "after" }
+      { upsert: !fetchedData, returnDocument: "after" }
     );
 
     res.status(201).json(fetchedData);
@@ -96,7 +98,7 @@ const findOneAndUpdate = async (req, res) => {
 
 const postJob = async (req, res) => {
   try {
-    const id = req.query.id;
+    const { id } = req.query;
     const pipeline = [
       { $match: { userId: id } },
       { $project: { _id: 0, company_name: "$personalInfo.company_name" } },
@@ -106,7 +108,7 @@ const postJob = async (req, res) => {
     const postJobs = await collectionPosts.insertOne({
       ...req.body,
       company_name: companyName?.[0]?.company_name,
-      status: "posted",
+      status: JOB_STATUS.LIVE,
     });
 
     if (postJobs) {
@@ -138,28 +140,10 @@ const findOneAndUpdatePostJobs = async (req, res) => {
   }
 };
 
-const getPostsByUserId = async (req, res) => {
-  try {
-    let foundItems = [];
-    const { id } = req.params;
-
-    const cursor = collectionPosts.find({ userId: id });
-
-    if (collectionPosts.countDocuments({}) === 0) {
-      return res.status(404).json({ message: "No data found" });
-    }
-    for await (const doc of cursor) {
-      foundItems.push(doc);
-    }
-    res.status(201).json(foundItems);
-  } catch (e) {
-    res.status(500).json({ error: `Error while saving to a database ${e}` });
-  }
-};
-
 const profileInfoById = getProfileInfoByUserId(collectionPfInfo);
+const getJobByStatus = jobStatusService(collectionPosts);
 
-const getAllPosts = async (req, res) => {
+const getAllPosts = async (_, res) => {
   try {
     const foundItems = await collectionPosts
       .aggregate([
@@ -453,7 +437,7 @@ module.exports = {
   findOneAndDelete,
   findOneAndUpdate,
   postJob,
-  getPostsByUserId,
+  getJobByStatus,
   profileInfoById,
   getAllPosts,
   findOneAndUpdatePostJobs,

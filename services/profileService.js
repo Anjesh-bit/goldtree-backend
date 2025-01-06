@@ -8,6 +8,7 @@ const profileService = (collection) => async (req, res) => {
     if (collection.countDocuments({}) === 0) {
       return res.status(404).json({ message: "No data found" });
     }
+
     for await (const doc of cursor) {
       foundItems.push(doc);
     }

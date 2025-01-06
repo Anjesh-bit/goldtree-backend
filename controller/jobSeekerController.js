@@ -115,8 +115,6 @@ const handleJobApplication = async (req, res) => {
       });
     }
 
-    
-
     const uploadData = await upload.insertOne({
       ...req.body,
       upload_cv: process.env.CLIENT_IMAGE_URI.concat(req.file.filename),
@@ -318,12 +316,6 @@ const getSavedJobs = async (req, res) => {
         $replaceRoot: { newRoot: "$jobDetails" },
       },
     ]).toArray();
-
-    if (!savedJobs.length) {
-      return res
-        .status(204)
-        .json({ message: "No saved jobs found for this user." });
-    }
 
     res.status(200).json(savedJobs);
   } catch (e) {
