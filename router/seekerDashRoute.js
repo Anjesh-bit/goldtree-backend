@@ -14,6 +14,7 @@ const {
 const { profileUpdate } = require("../controller/dynamicController");
 const { determineFieldName } = require("../middleware/fields");
 const { dynamicUpload } = require("../middleware/dynamicUpload");
+const { updateHiringStatus } = require("../controller/empDashController");
 
 jobSeekerRoute.route("/jobseeker-profile-info").post(profileInfo);
 
@@ -22,10 +23,7 @@ jobSeekerRoute
   .get(profileInfoById)
   .put(findOneAndUpdate);
 
-jobSeekerRoute
-  .route("/shortlist")
-  .put(handleJobApplication)
-  .get(shortListedJobs);
+jobSeekerRoute.route("/get-shortlisted-jobs").get(shortListedJobs);
 
 jobSeekerRoute
   .route("/profile-update")

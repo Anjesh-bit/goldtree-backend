@@ -1,13 +1,17 @@
 const { mongoClient } = require("../db/connection");
 const { ObjectId } = require("mongodb");
 const getProfileInfoByUserId = require("../services/profileService");
-const JOB_STATUS = require("../constant/appConstant");
+const { JOB_STATUS, HIRING_STATUS } = require("../constant/appConstant");
+
 const jobStatusService = require("../services/jobStatusService");
+const {
+  updateHiringStatusService,
+} = require("../services/hiringStatusService");
 const database = mongoClient.db("GoldTree");
 const upload = database.collection("Upload");
 const collectionPosts = database.collection("EmployeePostJobs");
 const collectionPfInfo = database.collection("EmployeeProfileInfo");
-const shortListJobInfo = database.collection("ShortListJobInfo");
+
 collectionPosts.createIndex({ status: 1 });
 
 const profileInfo = async (req, res) => {
@@ -216,8 +220,9 @@ const shortListedCandidates = async (req, res) => {
   const { userId } = req.query;
 
   try {
-    const foundItems = await shortListJobInfo
+    const foundItems = await upload
       .aggregate([
+        { $match: { shortlisted: true, status: HIRING_STATUS.PENDING } },
         {
           $lookup: {
             from: "EmployeePostJobs",
@@ -275,6 +280,7 @@ const shortListedCandidates = async (req, res) => {
             postId: "$postInfo._id",
             jobLocation: "$postInfo.job_location",
             companyName: "$postInfo.company_name",
+            status: "$status",
           },
         },
         {
@@ -431,6 +437,8 @@ const findEmployeeProfileById = async (req, res) => {
   }
 };
 
+const updateHiringStatus = updateHiringStatusService(upload);
+
 module.exports = {
   profileInfo,
   findAllProfileInfo,
@@ -445,4 +453,5 @@ module.exports = {
   findEmployeeProfileById,
   shortListedCandidates,
   getAllCandidateEasyApplied,
+  updateHiringStatus,
 };

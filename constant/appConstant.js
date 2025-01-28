@@ -6,4 +6,10 @@ const JOB_STATUS = {
   ADMIN_APPROVED: "admin-approved",
 };
 
-module.exports = JOB_STATUS;
+const HIRING_STATUS = {
+  ACCEPTED: "accepted",
+  REJECTED: "rejected",
+  PENDING: "pending",
+};
+
+module.exports = { JOB_STATUS, HIRING_STATUS };

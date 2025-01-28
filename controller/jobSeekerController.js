@@ -3,11 +3,13 @@ const database = mongoClient.db("GoldTree");
 const upload = database.collection("Upload");
 const collectionPosts = database.collection("EmployeePostJobs");
 const collectionPfInfo = database.collection("JobSeekerProfileInfo");
-const ShortListJobInfo = database.collection("ShortListJobInfo");
 const SavedJobInfo = database.collection("SavedJobInfo");
 const dotenv = require("dotenv");
 const getProfileInfoByUserId = require("../services/profileService");
 const { ObjectId } = require("mongodb");
+const {
+  getHiringStatusDataService,
+} = require("../services/hiringStatusService");
 dotenv.config();
 
 const profileInfo = async (req, res) => {
@@ -69,13 +71,8 @@ const findOneAndUpdate = async (req, res) => {
 
 const handleJobApplication = async (req, res) => {
   try {
-    const isShortList = req.query.shortList === "shortlist";
-
     //for posting job application
     const { userId, type: applyType, postId } = req.body;
-
-    // for shortlisted candidates
-    const { uploadId, type, postId: employeePostId } = req.query;
 
     const isAlreadyApplied = await upload.findOne({
       userId,
@@ -89,34 +86,9 @@ const handleJobApplication = async (req, res) => {
         .json({ error: "You have already posted for this job." });
     }
 
-    if (isShortList) {
-      const alreadyShortlisted = await ShortListJobInfo.findOne({
-        postId: employeePostId,
-        userId: uploadId,
-        type,
-      });
-
-      if (alreadyShortlisted) {
-        return res
-          .status(409)
-          .json({ message: "Candidate has already been shortlisted." });
-      }
-
-      const shortListData = await ShortListJobInfo.insertOne({
-        postId: employeePostId,
-        userId: uploadId,
-        type,
-        shortlistedAt: new Date(),
-      });
-
-      return res.status(201).json({
-        message: "Candidate successfully shortlisted.",
-        shortListData,
-      });
-    }
-
     const uploadData = await upload.insertOne({
       ...req.body,
+      status: "waiting",
       upload_cv: process.env.CLIENT_IMAGE_URI.concat(req.file.filename),
     });
 
@@ -138,71 +110,10 @@ const profileInfoById = getProfileInfoByUserId(collectionPfInfo);
 const appliedJobsByUserId = async (req, res) => {
   try {
     const { userId } = req.query;
-
-    const foundItems = await upload
-      .aggregate([
-        {
-          $match: {
-            type: "directApply",
-            userId: userId,
-          },
-        },
-        {
-          $lookup: {
-            from: "EmployeePostJobs",
-            let: { postId: "$postId" },
-            pipeline: [
-              {
-                $match: {
-                  $expr: {
-                    $and: [
-                      { $eq: [{ $strLenCP: "$$postId" }, 24] },
-                      {
-                        $eq: [
-                          "$_id",
-                          {
-                            $convert: {
-                              input: "$$postId",
-                              to: "objectId",
-                              onError: "$$REMOVE",
-                              onNull: "$$REMOVE",
-                            },
-                          },
-                        ],
-                      },
-                    ],
-                  },
-                },
-              },
-              {
-                $addFields: {
-                  postId: "$$postId",
-                },
-              },
-            ],
-            as: "postInfo",
-          },
-        },
-        {
-          $unwind: {
-            path: "$postInfo",
-          },
-        },
-        {
-          $project: {
-            _id: 0,
-            postId: "$postInfo._id",
-            apply_before: "$postInfo.apply_before",
-            job_title: "$postInfo.job_title",
-            job_level: "$postInfo.job_level",
-            job_location: "$postInfo.job_location",
-            degree_name: "$postInfo.degree_name",
-            education_qual_desc: "$postInfo.education_qual_desc",
-            company_name: "$postInfo.company_name",
-          },
-        },
-      ])
-      .toArray();
+    const foundItems = await getHiringStatusDataService(upload, {
+      type: "directApply",
+      userId,
+    });
 
     res.status(201).json(foundItems);
   } catch (e) {
@@ -215,34 +126,10 @@ const uploadProfile = () => {};
 const shortListedJobs = async (req, res) => {
   try {
     const { userId } = req.query;
-
-    const foundItems = await ShortListJobInfo.aggregate([
-      {
-        $match: {
-          userId,
-        },
-      },
-      {
-        $lookup: {
-          from: "EmployeePostJobs",
-          let: { postId: { $toObjectId: "$postId" } },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ["$_id", "$$postId"] },
-              },
-            },
-          ],
-          as: "jobDetails",
-        },
-      },
-      {
-        $unwind: "$jobDetails",
-      },
-      {
-        $replaceRoot: { newRoot: "$jobDetails" },
-      },
-    ]).toArray();
+    const foundItems = await getHiringStatusDataService(upload, {
+      userId,
+      shortlisted: true,
+    });
 
     if (foundItems) {
       res.status(200).json(foundItems);
@@ -288,35 +175,9 @@ const saveJobs = async (req, res) => {
 const getSavedJobs = async (req, res) => {
   try {
     const { jobSeekUserId } = req.params;
-    console.log(typeof jobSeekUserId);
-    const savedJobs = await SavedJobInfo.aggregate([
-      {
-        $match: {
-          userId: jobSeekUserId,
-        },
-      },
-      {
-        $lookup: {
-          from: "EmployeePostJobs",
-          let: { postId: { $toObjectId: "$postId" } },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ["$_id", "$$postId"] },
-              },
-            },
-          ],
-          as: "jobDetails",
-        },
-      },
-      {
-        $unwind: "$jobDetails",
-      },
-      {
-        $replaceRoot: { newRoot: "$jobDetails" },
-      },
-    ]).toArray();
-
+    const savedJobs = await getHiringStatusDataService(SavedJobInfo, {
+      userId: jobSeekUserId,
+    });
     res.status(200).json(savedJobs);
   } catch (e) {
     res.status(500).json({ error: `Error while fetching saved jobs: ${e}` });

@@ -1,4 +1,4 @@
-const JOB_STATUS = require("../constant/appConstant");
+const { JOB_STATUS } = require("../constant/appConstant");
 
 const jobStatusService = (collection) => async (req, res) => {
   try {

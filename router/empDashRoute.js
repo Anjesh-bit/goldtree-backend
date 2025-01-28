@@ -4,13 +4,14 @@ const {
   profileInfo,
   findOneAndDelete,
   findOneAndUpdate,
-  getPostsByUserId,
   profileInfoById,
   findOneAndUpdatePostJobs,
   shortListedCandidates,
   getAllCandidateEasyApplied,
   getJobByStatus,
+  updateHiringStatus,
 } = require("../controller/empDashController");
+
 const { handleJobApplication } = require("../controller/jobSeekerController");
 const { determineFieldName } = require("../middleware/fields");
 const { dynamicUpload } = require("../middleware/dynamicUpload");
@@ -34,5 +35,6 @@ empRoute
   .put(findOneAndUpdatePostJobs);
 
 empRoute.route("/short-listed-candidates").get(shortListedCandidates);
+empRoute.route("/update-job-hiring-status").put(updateHiringStatus);
 
 module.exports = empRoute;
