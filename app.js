@@ -19,7 +19,13 @@ const PORT = config.get("port") || process.env.PORT;
 //Initialize the express app
 const app = express();
 
-app.use(cors({ origin: "http://localhost:3000", credentials: true }));
+app.use(
+  cors({
+    origin: ["http://localhost:3000", "https://api.goldtree.com.np"],
+    credentials: true,
+  })
+);
+
 connect().catch((e) => {
   console.log(`Error Connecting Db ${e}`);
 });

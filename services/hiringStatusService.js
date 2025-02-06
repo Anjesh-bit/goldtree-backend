@@ -43,39 +43,46 @@ const updateHiringStatusService = (collection) => async (req, res) => {
 };
 
 const getHiringStatusDataService = async (collection, match) => {
-  return await collection
+  const [result = {}] = await collection
     .aggregate([
-      {
-        $match: match,
-      },
+      { $match: match },
       {
         $lookup: {
           from: "EmployeePostJobs",
           let: { postId: { $toObjectId: "$postId" } },
-          pipeline: [
-            {
-              $match: {
-                $expr: { $eq: ["$_id", "$$postId"] },
-              },
-            },
-          ],
+          pipeline: [{ $match: { $expr: { $eq: ["$_id", "$$postId"] } } }],
           as: "jobDetails",
         },
       },
+      { $unwind: "$jobDetails" },
       {
-        $unwind: "$jobDetails",
-      },
-      {
-        $group: {
-          _id: "$_id",
-          userId: { $first: "$userId" },
-          status: { $first: "$status" },
-          shortlisted: { $first: "$shortlisted" },
-          jobDetails: { $first: "$jobDetails" },
+        $facet: {
+          data: [
+            {
+              $group: {
+                _id: "$_id",
+                userId: { $first: "$userId" },
+                status: { $first: "$status" },
+                shortlisted: { $first: "$shortlisted" },
+                jobDetails: { $first: "$jobDetails" },
+              },
+            },
+          ],
+          totalCount: [
+            { $count: "count" },
+            { $set: { totalCount: "$count" } },
+            { $unset: "count" },
+          ],
         },
       },
+      { $unwind: { path: "$totalCount", preserveNullAndEmptyArrays: true } },
     ])
     .toArray();
+
+  return {
+    data: result.data ?? [],
+    totalCount: result.totalCount?.totalCount ?? 0,
+  };
 };
 
 module.exports = { updateHiringStatusService, getHiringStatusDataService };

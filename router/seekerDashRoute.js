@@ -2,7 +2,6 @@ const express = require("express");
 const jobSeekerRoute = express.Router();
 const {
   profileInfo,
-  handleJobApplication,
   findOneAndUpdate,
   profileInfoById,
   appliedJobsByUserId,
@@ -10,6 +9,9 @@ const {
   shortListedJobs,
   saveJobs,
   getSavedJobs,
+  getRejectedJobs,
+  getPendingJobs,
+  getAcceptedJobs,
 } = require("../controller/jobSeekerController");
 const { profileUpdate } = require("../controller/dynamicController");
 const { determineFieldName } = require("../middleware/fields");
@@ -34,5 +36,9 @@ jobSeekerRoute.route("/save-jobs/:jobSeekUserId").get(getSavedJobs);
 
 jobSeekerRoute.route("/jobSeeker-applied-jobs").get(appliedJobsByUserId);
 jobSeekerRoute.route("/profile-update").post(uploadProfile);
+
+jobSeekerRoute.route("/jobSeeker-rejected-jobs/:userId").get(getRejectedJobs);
+jobSeekerRoute.route("/jobSeeker-pending-jobs/:userId").get(getPendingJobs);
+jobSeekerRoute.route("/jobSeeker-accepted-jobs/:userId").get(getAcceptedJobs);
 
 module.exports = jobSeekerRoute;

@@ -10,6 +10,7 @@ const { ObjectId } = require("mongodb");
 const {
   getHiringStatusDataService,
 } = require("../services/hiringStatusService");
+const { HIRING_STATUS } = require("../constant/appConstant");
 dotenv.config();
 
 const profileInfo = async (req, res) => {
@@ -71,7 +72,6 @@ const findOneAndUpdate = async (req, res) => {
 
 const handleJobApplication = async (req, res) => {
   try {
-    //for posting job application
     const { userId, type: applyType, postId } = req.body;
 
     const isAlreadyApplied = await upload.findOne({
@@ -89,6 +89,7 @@ const handleJobApplication = async (req, res) => {
     const uploadData = await upload.insertOne({
       ...req.body,
       status: "waiting",
+      shortlisted: false,
       upload_cv: process.env.CLIENT_IMAGE_URI.concat(req.file.filename),
     });
 
@@ -184,6 +185,47 @@ const getSavedJobs = async (req, res) => {
   }
 };
 
+const getAcceptedJobs = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const acceptedJobs = await getHiringStatusDataService(upload, {
+      userId,
+      status: HIRING_STATUS.ACCEPTED,
+    });
+
+    res.status(200).json(acceptedJobs);
+  } catch (e) {
+    res.status(500).json({ error: `Error while fetching saved jobs: ${e}` });
+  }
+};
+
+const getRejectedJobs = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const acceptedJobs = await getHiringStatusDataService(upload, {
+      userId,
+      status: HIRING_STATUS.REJECTED,
+    });
+
+    res.status(200).json(acceptedJobs);
+  } catch (e) {
+    res.status(500).json({ error: `Error while fetching saved jobs: ${e}` });
+  }
+};
+
+const getPendingJobs = async (req, res) => {
+  try {
+    const { userId } = req.query;
+    const pendingJobs = await getHiringStatusDataService(upload, {
+      userId,
+      status: HIRING_STATUS.PENDING,
+    });
+    res.status(200).json(pendingJobs);
+  } catch (e) {
+    res.status(500).json({ error: `Error while fetching saved jobs: ${e}` });
+  }
+};
+
 module.exports = {
   profileInfo,
   handleJobApplication,
@@ -194,4 +236,7 @@ module.exports = {
   shortListedJobs,
   saveJobs,
   getSavedJobs,
+  getAcceptedJobs,
+  getPendingJobs,
+  getRejectedJobs,
 };
