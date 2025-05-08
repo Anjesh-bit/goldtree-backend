@@ -11,6 +11,7 @@ const globalAuth = require("./middleware/globalAuth");
 const cookieParser = require("cookie-parser");
 const cron = require("node-cron");
 const scheduleJobStatus = require("./services/scheduleJobStatus");
+const adminRouter = require("./router/adminRoute");
 
 dotenv.config();
 
@@ -36,7 +37,7 @@ app.use("/public", express.static("public"));
 app.use("/goldtree", userRouter);
 app.use("/goldtree", publicRoutes);
 app.use("/goldtree", globalAuth, empDashRouter, jobSeekerRouter);
-
+app.use("/api/v1/gold-tree-admin", adminRouter);
 app.listen(PORT, () => {
   console.log(`GoldTree Is Listening To Port ${PORT}`);
 });
