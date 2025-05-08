@@ -56,29 +56,34 @@ const scheduleJobStatus = async () => {
 
       lastProcessedId = jobs[jobs.length - 1]._id;
     }
-    //five days of inactivity change job status to pending.
+    //five days of inactivity change job status to pending only if admin approved.
     const fiveDaysAgo = new Date();
     fiveDaysAgo.setDate(fiveDaysAgo.getDate() - 5);
 
+    const closedPostIds = await collectionPosts
+      .aggregate([
+        {
+          $match: {
+            status: JOB_STATUS.CLOSED,
+            updatedAt: { $lte: fiveDaysAgo },
+          },
+        },
+        { $project: { _id: 1 } },
+      ])
+      .toArray()
+      .then((jobs) => jobs.map((job) => job._id));
+
     const updateResult = await upload.updateMany(
       {
-        status: HIRING_STATUS.WAITING,
-        postId: {
-          $in: await collectionPosts
-            .aggregate([
-              {
-                $match: {
-                  status: JOB_STATUS.CLOSED,
-                  updatedAt: { $lte: fiveDaysAgo },
-                },
-              },
-              { $project: { _id: 1 } },
-            ])
-            .toArray()
-            .then((jobs) => jobs.map((job) => job._id)),
-        },
+        status: "admin-approved",
+        postId: { $in: closedPostIds },
       },
-      { $set: { status: JOB_STATUS.PENDING, updatedAt: new Date() } }
+      {
+        $set: {
+          status: JOB_STATUS.PENDING,
+          updatedAt: new Date(),
+        },
+      }
     );
 
     console.log(`✅ Updated ${updateResult.modifiedCount} uploads to PENDING.`);
