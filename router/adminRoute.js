@@ -10,8 +10,8 @@ const {
 const adminRouter = express.Router();
 
 adminRouter.get("/admin-dashboard-jobs-count", jobsCount);
-adminRouter.get("job-listing", getAllJobListings);
-adminRouter.get("applied-jobs", appliedJobs);
+adminRouter.get("/job-listing", getAllJobListings);
+adminRouter.get("/applied-jobs", appliedJobs);
 adminRouter.delete("/delete-applied-jobs", deleteAppliedJobs);
 adminRouter.delete("/delete-posted-jobs", deletePostedEmployeeJobs);
 
