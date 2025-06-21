@@ -29,14 +29,21 @@ const jobsCount = async (_, res) => {
   }
 };
 
-const appliedJobs = async (req, res) => {
-  const { status } = req.query;
+const appliedJobs = async (_, res) => {
   try {
-    const foundItems = await getHiringStatusDataService(upload, { status });
-
+    const foundItems = await getHiringStatusDataService(upload, {});
     res.status(201).json(foundItems);
   } catch (e) {
     res.status(500).json({ error: `Error while saving to a database: ${e}` });
+  }
+};
+
+const expiredJobs = async (_, res) => {
+  try {
+    const jobs = await collectionPosts.find({ status: "closed" }).toArray();
+    res.status(200).json(jobs);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch expired jobs" });
   }
 };
 
@@ -65,9 +72,10 @@ const getAllJobListings = async (req, res) => {
 };
 
 const deleteAppliedJobs = deleteJobsService(upload);
-const deletePostedEmployeeJobs = deleteJobsService(upload);
+const deletePostedEmployeeJobs = deleteJobsService(collectionPosts);
 
 module.exports = {
+  expiredJobs,
   jobsCount,
   appliedJobs,
   getAllJobListings,

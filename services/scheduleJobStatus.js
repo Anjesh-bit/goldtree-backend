@@ -75,7 +75,7 @@ const scheduleJobStatus = async () => {
 
     const updateResult = await upload.updateMany(
       {
-        status: "admin-approved",
+        status: "waiting",
         postId: { $in: closedPostIds },
       },
       {
